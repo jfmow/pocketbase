@@ -10,8 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joho/godotenv"
-
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -30,11 +28,14 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	//err := godotenv.Load()
+	//if err != nil {
+	//	log.Fatal("Error loading .env file")
+	//}
 	autoReset := os.Getenv("AUTO_RESET")
+	if autoReset == "true" {
+		log.Println("AUTO RESET IS ACTIVE")
+	}
 	yourReplyToEmail := os.Getenv("REPLY_TO_EMAIL")
 	if yourReplyToEmail == "" {
 		yourReplyToEmail = "help@example.com"
