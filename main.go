@@ -149,9 +149,15 @@ func main() {
 
 		// set individual fields
 		// or bulk load with record.Load(map[string]any{...})
-		filePath := "preview_page.json"
+		executable, err := os.Executable()
+		if err != nil {
+			log.Fatal("Error getting executable path:", err)
+		}
+
+		filePath := filepath.Join(filepath.Dir(executable), "preview_page.json")
 		data, err := os.ReadFile(filePath)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 		type Page struct {
@@ -165,6 +171,7 @@ func main() {
 		var page Page
 		err = json.Unmarshal(data, &page)
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 		if user != "" {
@@ -178,6 +185,7 @@ func main() {
 		record.Set("unsplash", page.Unsplash)
 
 		if err := app.Dao().SaveRecord(record); err != nil {
+			log.Println(err)
 			return err
 		}
 		return nil
