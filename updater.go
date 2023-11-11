@@ -48,6 +48,11 @@ func updater() {
 	// Run the executable
 	fmt.Println("Running base executable...")
 	exePath := filepath.Join(uzFilePath, "installer")
+	err = os.Chmod(exePath, 0755)
+	if err != nil {
+		fmt.Println("error setting execution permission:", err)
+		return
+	}
 	err = runExecutable(exePath)
 	if err != nil {
 		fmt.Println("Error running executable:", err)
