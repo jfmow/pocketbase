@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/mail"
 	"os"
@@ -8,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
@@ -17,19 +20,25 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/ghupdate"
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
-
-	//"github.com/pocketbase/pocketbase/tools/cron"
-
+	"github.com/pocketbase/pocketbase/tools/cron"
 	"github.com/pocketbase/pocketbase/tools/mailer"
 )
 
 var mu sync.Mutex
-var yourReplyToEmail = "help@`+ yourDomainVar + `"
 var yourDomainVar = "note.suddsy.dev"
 
 //var viewMu = &sync.Mutex{}
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	autoReset := os.Getenv("AUTO_RESET")
+	yourReplyToEmail := os.Getenv("REPLY_TO_EMAIL")
+	if yourReplyToEmail == "" {
+		yourReplyToEmail = "help@example.com"
+	}
 	app := pocketbase.New()
 
 	// ---------------------------------------------------------------
@@ -129,28 +138,74 @@ func main() {
 		return nil
 	})
 
+	createWelcomePage := func(user string) error {
+		collection, err := app.Dao().FindCollectionByNameOrId("pages")
+		if err != nil {
+			return err
+		}
+
+		record := models.NewRecord(collection)
+
+		// set individual fields
+		// or bulk load with record.Load(map[string]any{...})
+		filePath := "preview_page.json"
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return err
+		}
+		type Page struct {
+			Content  json.RawMessage `json:"content"`
+			Shared   bool            `json:"shared"`
+			Id       string          `json:"id"`
+			Title    string          `json:"title"`
+			Icon     string          `json:"icon"`
+			Unsplash string          `json:"unsplash"`
+		}
+		var page Page
+		err = json.Unmarshal(data, &page)
+		if err != nil {
+			return err
+		}
+		if user != "" {
+			record.Set("owner", user)
+		}
+		record.Set("content", page.Content)
+		record.Set("shared", page.Shared)
+		record.Set("id", page.Id)
+		record.Set("title", page.Title)
+		record.Set("icon", page.Icon)
+		record.Set("unsplash", page.Unsplash)
+
+		if err := app.Dao().SaveRecord(record); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
 		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS(publicDir), indexFallback))
-		//scheduler := cron.New()
-		//
-		//// prints "Hello!" every 2 minutes
-		//scheduler.MustAdd("hello", "0 */12 * * *", func() {
-		//	arr := [9]string{"users", "pages", "imgs", "files", "subscriptions", "cookies", "reviews", "user_custom_settings", "bug_reports"}
-		//	// Iterate through the array using range-based loop
-		//	for _, value := range arr {
-		//		res, err := app.Dao().DB().
-		//			NewQuery(`DELETE FROM ` + value + `;`).
-		//			Execute()
-		//		if err != nil {
-		//			return
-		//		}
-		//		log.Println(res)
-		//
-		//	}
-		//
-		//})
-		//scheduler.Start()
+
+		//Auto drop all tables
+		scheduler := cron.New()
+		if autoReset == "true" {
+			scheduler.MustAdd("hello", "0 */12 * * *", func() {
+				arr := [9]string{"users", "pages", "imgs", "files"}
+				// Iterate through the array using range-based loop
+				for _, value := range arr {
+					_, err := app.Dao().DB().
+						NewQuery(`DELETE FROM ` + value + `;`).
+						Execute()
+					if err != nil {
+						return
+					}
+					//log.Println(res)
+					createWelcomePage("")
+				}
+			})
+		}
+		scheduler.Start()
+		createWelcomePage("")
 		return nil
 	})
 
@@ -175,94 +230,8 @@ func main() {
 
 	app.OnRecordAfterCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
 		//log.Println(e.Record)
-		collection, err := app.Dao().FindCollectionByNameOrId("pages")
-		if err != nil {
-			return err
-		}
 
-		record := models.NewRecord(collection)
-
-		// set individual fields
-		// or bulk load with record.Load(map[string]any{...})
-		record.Set("owner", e.Record.Id)
-		record.Set("content", `{
-			"time": 1696219628692,
-			"blocks": [
-			  {
-				"id": "aV-p5oq-7s",
-				"type": "paragraph",
-				"data": {
-				  "text": "👋 Welcome!"
-				}
-			  },
-			  {
-				"id": "NGCwdl_tCP",
-				"type": "paragraph",
-				"data": {
-				  "text": "Here are the basics:"
-				}
-			  },
-			  {
-				"id": "xoPMiSDOBz",
-				"type": "nestedList",
-				"data": {
-				  "style": "unordered",
-				  "items": [
-					{
-					  "content": "Click anywhere and just start typing",
-					  "items": []
-					},
-					{
-					  "content": "Hit [<b>tab</b>] to see all the types of content you can add - photos, videos, sub pages, etc.",
-					  "items": []
-					},
-					{
-					  "content": "<mark class=\"cdx-marker\">Highlight </mark>any text, and use the menu that pops up to <b><i>style </i></b>your writing <b><mark class=\"cdx-marker\" style=\"background-color: rgb(204, 205, 245);\">however </mark></b>",
-					  "items": []
-					},
-					{
-					  "content": "See the ⋮⋮ to the left of this? Click it for more options with the block.",
-					  "items": []
-					},
-					{
-					  "content": "Click the + New Page button at the bottom of your sidebar to add a new page",
-					  "items": []
-					},
-					{
-					  "content": "Click Templates in your sidebar to get started with pre-built pages",
-					  "items": []
-					},
-					{
-					  "content": "Click the arrow in the side bar next to the page to view/create sub-pages",
-					  "items": []
-					}
-				  ]
-				}
-			  },
-			  {
-				"id": "pFxqj9VLwS",
-				"type": "paragraph",
-				"data": {
-				  "text": "👉&nbsp;Have a question 🤔? Send us a message!"
-				}
-			  },
-			  {
-				"id": "AC4vYAeixu",
-				"type": "paragraph",
-				"data": {
-				  "text": "<i>Cover by:</i>&nbsp;<a href=\"https://unsplash.com/@vimal_saran\">unsplash.com/@vimal_saran</a>"
-				}
-			  }
-			],
-			"version": "2.27.2"
-		  }`)
-		record.Set("title", "Welcome")
-		record.Set("icon", "1f44b.png")
-		record.Set("unsplash", "https://images.unsplash.com/photo-1694365899936-850bc6c2b0f6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w0NTQ4OTJ8MHwxfHJhbmRvbXx8fHx8fHx8fDE2OTYyMTk1MzJ8&ixlib=rb-4.0.3&q=85")
-
-		if err := app.Dao().SaveRecord(record); err != nil {
-			return err
-		}
+		createWelcomePage(e.Record.Id)
 		return nil
 	})
 
