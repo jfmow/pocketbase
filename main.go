@@ -20,6 +20,7 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/cron"
 	"github.com/pocketbase/pocketbase/tools/mailer"
+	"github.com/spf13/cobra"
 )
 
 var mu sync.Mutex
@@ -28,6 +29,7 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
+	//If using outside docker compose un comment these
 	//err := godotenv.Load()
 	//if err != nil {
 	//	log.Fatal("Error loading .env file")
@@ -364,6 +366,13 @@ func main() {
 		})
 
 		return nil
+	})
+
+	app.RootCmd.AddCommand(&cobra.Command{
+		Use: "deploy",
+		Run: func(cmd *cobra.Command, args []string) {
+			updater()
+		},
 	})
 
 	if err := app.Start(); err != nil {
