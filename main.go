@@ -29,7 +29,6 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
-	log.Println("test")
 	//If using outside docker compose un comment these
 	//err := godotenv.Load()
 	//if err != nil {
