@@ -23,8 +23,8 @@ def build_and_zip(target_arch=''):
     with zipfile.ZipFile('base.zip', 'w') as zipf:
         zipf.write('base', arcname='base')
         zipf.write(os.path.join('installer', 'installer'), arcname='installer')
+        zipf.write('preview_page.json', arcname='preview_page.json')
     os.remove(os.path.join('installer', 'installer'))
-    os.remove('base')
 
 def git_commit_push_sync():
     # Check if 'base.zip' exists
