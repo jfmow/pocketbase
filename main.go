@@ -274,36 +274,61 @@ func main() {
 			return nil
 		}
 		authRecord, _ := e.HttpContext.Get(apis.ContextAuthRecordKey).(*models.Record)
+		flagsCollection, err := app.Dao().FindCollectionByNameOrId("user_flags")
+		if err != nil || flagsCollection == nil {
+			return nil
+		}
+		userFlags, err := app.Dao().FindFirstRecordByData(flagsCollection.Id, "user", authRecord.Id)
+		if err != nil {
+			record := models.NewRecord(flagsCollection)
+			record.Set("user", authRecord.Id)
+			record.Set("quota", 10485760)
+			if err := app.Dao().SaveRecord(record); err != nil {
+				return apis.NewBadRequestError("Failed to validate user quota. Please contact support if this issue persists.", nil)
+			}
+			return nil
+		}
+		//log.Println(userFlags)
+		if userFlags.GetBool("admin") {
+			return nil
+		}
 		if authRecord == nil {
 			return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
 		}
 		if authRecord.CleanCopy().GetBool("admin") {
 			return nil
 		}
-		recordimg, err1 := app.Dao().FindRecordById("Total_img_per_user", authRecord.Id)
-		recordfile, err2 := app.Dao().FindRecordById("total_files_per_user", authRecord.Id)
 
-		if err1 != nil && err2 != nil {
-			return nil // Both records couldn't be fetched, handle the error accordingly
-		}
-
+		var totalColl int
 		var totalSize float64
 
-		if err1 == nil {
+		recordimg, err := app.Dao().FindRecordById("Total_img_per_user", authRecord.Id)
+
+		if err != nil {
+			totalColl++
+		} else {
 			totalSize += recordimg.GetFloat("total_size")
 		}
 
-		if err2 == nil {
+		recordfile, err := app.Dao().FindRecordById("total_files_per_user", authRecord.Id)
+
+		if err != nil {
+			totalColl++
+		} else {
 			totalSize += recordfile.GetFloat("total_size")
 		}
 
-		//log.Println(totalSize)
-
-		if totalSize > 10485760 {
-			return apis.NewForbiddenError("You have exceeded the total size of embeds/images allowed for your account.", nil)
+		if totalColl >= 2 {
+			return nil
 		}
 
-		// Continue with your code logic if the total size is within the limit
+		//log.Println(totalSize, userFlags.GetFloat("quota"))
+
+		//log.Println(totalSize, userFlags.GetInt("quota"))
+
+		if totalSize >= userFlags.GetFloat("quota") {
+			return apis.NewForbiddenError("You have exceeded the total size of embeds/images allowed for your account.", nil)
+		}
 
 		return nil
 	})
