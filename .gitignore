@@ -4,3 +4,4 @@ main.exe
 .env
 /installer/base
 /installer/installer
+base

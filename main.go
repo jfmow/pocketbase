@@ -29,6 +29,7 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
+	log.Println(time.Now())
 	//If using outside docker compose un comment these
 	//err := godotenv.Load()
 	//if err != nil {
@@ -201,7 +202,7 @@ func main() {
 		scheduler := cron.New()
 		if autoReset == "true" {
 			scheduler.MustAdd("hello", "0 */12 * * *", func() {
-				arr := [9]string{"users", "pages", "imgs", "files"}
+				arr := [9]string{"users", "pages", "imgs", "files", "user_flags"}
 				// Iterate through the array using range-based loop
 				for _, value := range arr {
 					_, err := app.Dao().DB().
