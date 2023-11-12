@@ -24,6 +24,7 @@ func updater() {
 		fmt.Println("Error downloading zip file:", err)
 		return
 	}
+	fmt.Println("Zip downloaded")
 	defer os.Remove(zipName)
 
 	// Unzip the file
@@ -32,6 +33,7 @@ func updater() {
 		fmt.Println("Error unzipping file:", err)
 		return
 	}
+	fmt.Println("Unzipped")
 
 	// Run the updated executable
 
@@ -47,15 +49,14 @@ func updater() {
 		fmt.Println("Error give permision:", err)
 		return
 	}
+	fmt.Println("Permisions done")
 	_, err = runExecutable(filepath.Join(targetDir, executableName))
 	if err != nil {
 		fmt.Println("Error running executable:", err)
 		return
 	}
 
-	fmt.Println("Program executed successfully.")
-	fmt.Println("Shuting down...")
-	os.Exit(0)
+	fmt.Println("Installer started successfully.")
 }
 
 func downloadFile(filepath string, url string) error {

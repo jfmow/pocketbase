@@ -27,11 +27,13 @@ func main() {
 		fmt.Println("Error replacing find executable:", err)
 		return
 	}
+	fmt.Println("Found exe")
 	err = replaceExecutable(filepath.Join(exeDir, "..", executableName))
 	if err != nil {
 		fmt.Println("Error replacing executable:", err)
 		return
 	}
+	fmt.Println("Swapped exe's")
 
 	// Run the updated executable
 	log.Println(filepath.Join(exeDir, "..", "..", executableName), filepath.Join("..", executableName))
@@ -40,14 +42,14 @@ func main() {
 		fmt.Println("Error give permision 2:", err)
 		return
 	}
+	fmt.Println("Permisions given")
 	_, err = runExecutable(filepath.Join(exeDir, "..", "..", executableName), "serve")
 	if err != nil {
 		fmt.Println("Error running executable:", err)
 		return
 	}
 
-	fmt.Println("Program executed successfully.")
-	fmt.Println("Success")
+	fmt.Println("New base executed successfully.\nBye...")
 	os.Exit(0)
 }
 
@@ -59,6 +61,9 @@ func replaceExecutable(newExecutable string) error {
 		executableName = executableName + ".exe"
 	}
 	exeDir, err := os.Executable()
+	if err != nil {
+		return err
+	}
 	currentExecutable := filepath.Join(exeDir, "..", "..", executableName)
 	err = os.Rename(newExecutable, currentExecutable)
 	return err
