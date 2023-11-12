@@ -20,7 +20,6 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/cron"
 	"github.com/pocketbase/pocketbase/tools/mailer"
-	"github.com/spf13/cobra"
 )
 
 var mu sync.Mutex
@@ -394,12 +393,12 @@ func main() {
 		return nil
 	})
 
-	app.RootCmd.AddCommand(&cobra.Command{
-		Use: "deploy",
-		Run: func(cmd *cobra.Command, args []string) {
-			updater()
-		},
-	})
+	//app.RootCmd.AddCommand(&cobra.Command{
+	//	Use: "deploy",
+	//	Run: func(cmd *cobra.Command, args []string) {
+	//		updater()
+	//	},
+	//})
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
