@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,14 +21,26 @@ func main() {
 	if currentOS == "windows" {
 		executableName = executableName + ".exe"
 	}
-	err := replaceExecutable(filepath.Join(targetDir, executableName))
+
+	exeDir, err := os.Executable()
+	if err != nil {
+		fmt.Println("Error replacing find executable:", err)
+		return
+	}
+	err = replaceExecutable(filepath.Join(exeDir, "..", executableName))
 	if err != nil {
 		fmt.Println("Error replacing executable:", err)
 		return
 	}
 
 	// Run the updated executable
-	_, err = runExecutable(filepath.Join("..", executableName), "serve")
+	log.Println(filepath.Join(exeDir, "..", "..", executableName), filepath.Join("..", executableName))
+	err = os.Chmod(filepath.Join(exeDir, "..", "..", executableName), 0755)
+	if err != nil {
+		fmt.Println("Error give permision 2:", err)
+		return
+	}
+	_, err = runExecutable(filepath.Join(exeDir, "..", "..", executableName), "serve")
 	if err != nil {
 		fmt.Println("Error running executable:", err)
 		return
@@ -45,8 +58,9 @@ func replaceExecutable(newExecutable string) error {
 	if currentOS == "windows" {
 		executableName = executableName + ".exe"
 	}
-	currentExecutable := filepath.Join("..", executableName)
-	err := os.Rename(newExecutable, currentExecutable)
+	exeDir, err := os.Executable()
+	currentExecutable := filepath.Join(exeDir, "..", "..", executableName)
+	err = os.Rename(newExecutable, currentExecutable)
 	return err
 }
 

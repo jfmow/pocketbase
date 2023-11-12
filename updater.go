@@ -42,6 +42,11 @@ func updater() {
 	}
 	fmt.Println(executableName)
 
+	err = os.Chmod(filepath.Join(targetDir, executableName), 0755)
+	if err != nil {
+		fmt.Println("Error give permision:", err)
+		return
+	}
 	_, err = runExecutable(filepath.Join(targetDir, executableName))
 	if err != nil {
 		fmt.Println("Error running executable:", err)
