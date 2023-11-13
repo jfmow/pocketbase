@@ -438,6 +438,8 @@ func gitHub() {
 		log.Fatal(err)
 	}
 
+	log.Println(latestFileSHA, *fileContent.SHA)
+
 	if *fileContent.SHA != latestFileSHA && latestFileSHA != "" {
 		fmt.Println("Update found")
 		latestFileSHA = *fileContent.SHA
