@@ -33,7 +33,7 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
-	log.Println(time.Now(), "Version: 0.2")
+	log.Println(time.Now(), "Version: 0.3")
 	//If using outside docker compose un comment these
 	//err := godotenv.Load()
 	//if err != nil {
