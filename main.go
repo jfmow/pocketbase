@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"net/mail"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/github"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -33,13 +35,13 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
+	fmt.Println("RIGHT")
 	//If using outside docker compose un comment these
-	//err := godotenv.Load()
-	//if err != nil {
-	//	log.Fatal("Error loading .env file")
-	//}
-	fmt.Println("TEST")
-	gitHub()
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file")
+	}
+	//gitHub()
 	autoReset := os.Getenv("AUTO_RESET")
 	if autoReset == "true" {
 		log.Println("AUTO RESET IS ACTIVE")
@@ -202,12 +204,48 @@ func main() {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
 		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS(publicDir), indexFallback))
+		e.Router.GET("/hello/:name", func(c echo.Context) error {
+			name := c.PathParam("name")
+
+			return c.JSON(http.StatusOK, map[string]string{"message": "BOO " + name})
+		} /* optional middlewares */)
+		e.Router.GET("/update/latest", func(c echo.Context) error {
+			updateApiKey := c.QueryParam("auth")
+			updateApiKeyEnv := os.Getenv("updateApiKey")
+			//log.Println(updateApiKeyEnv, updateApiKey)
+			if updateApiKey != updateApiKeyEnv {
+				return c.JSON(http.StatusForbidden, "")
+			}
+			collId, err := app.Dao().FindCollectionByNameOrId("pocketbases")
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, "")
+			}
+			type Update struct {
+				Id   string `db:"id" json:"id"`
+				Base string `db:"base" json:"base"`
+			}
+			result := Update{}
+
+			app.Dao().DB().
+				Select("pocketbases.*").
+				From("pocketbases").
+				OrderBy("updated ASC").One(&result)
+
+			newFs, err := app.NewFilesystem()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, "")
+			}
+			return newFs.Serve(c.Response().Writer, c.Request(), collId.Id+"/"+result.Id+"/"+result.Base, "base")
+
+			//c.File()
+
+		} /* optional middlewares */)
 
 		//Auto drop all tables
 		scheduler := cron.New()
-		scheduler.MustAdd("hello2e", "* * * * *", func() {
-			gitHub()
-		})
+		//scheduler.MustAdd("hello2e", "* * * * *", func() {
+		//	gitHub()
+		//})
 		if autoReset == "true" {
 			scheduler.MustAdd("hello", "0 */12 * * *", func() {
 				arr := [9]string{"users", "pages", "imgs", "files", "user_flags"}
@@ -405,9 +443,11 @@ func main() {
 	app.RootCmd.AddCommand(&cobra.Command{
 		Use: "updateme",
 		Run: func(cmd *cobra.Command, args []string) {
-			updater()
+			installUpdate()
 		},
 	})
+
+	KillTheOldExe()
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
@@ -444,7 +484,7 @@ func gitHub() {
 	if *fileContent.SHA != latestFileSHA && latestFileSHA != "" {
 		fmt.Println("Update found")
 		latestFileSHA = *fileContent.SHA
-		updater()
+		//updater()
 	} else {
 		fmt.Println("No update found")
 	}
