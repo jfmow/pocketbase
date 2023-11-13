@@ -38,7 +38,7 @@ func main() {
 	//if err != nil {
 	//	log.Fatal("Error loading .env file")
 	//}
-
+	fmt.Println("TEST")
 	gitHub()
 	autoReset := os.Getenv("AUTO_RESET")
 	if autoReset == "true" {

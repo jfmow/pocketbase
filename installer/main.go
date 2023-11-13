@@ -20,7 +20,7 @@ func main() {
 	KillOldExe()
 	err := unzip(zipName, targetDir)
 	if err != nil {
-		fmt.Println("Error unzipping file:", err)
+		fmt.Println("Error unzipping file (EXE:INSTALLER):", err)
 		return
 	}
 	currentOS := runtime.GOOS
@@ -31,13 +31,13 @@ func main() {
 
 	exeDir, err := os.Executable()
 	if err != nil {
-		fmt.Println("Error replacing find executable:", err)
+		fmt.Println("Error replacing find executable (EXE:INSTALLER):", err)
 		return
 	}
 	fmt.Println("Found exe")
 	err = replaceExecutable(filepath.Join(exeDir, "..", "update", executableName))
 	if err != nil {
-		fmt.Println("Error replacing executable:", err)
+		fmt.Println("Error replacing executable (EXE:INSTALLER):", err)
 		return
 	}
 	fmt.Println("Swapped exe's")
@@ -46,17 +46,18 @@ func main() {
 	log.Println(filepath.Join(exeDir, "..", executableName))
 	err = os.Chmod(filepath.Join(exeDir, "..", executableName), 0755)
 	if err != nil {
-		fmt.Println("Error give permision 2:", err)
+		fmt.Println("Error give permision 2 (EXE:INSTALLER):", err)
 		return
 	}
 	fmt.Println("Permisions given")
 	_, err = runExecutable(filepath.Join(exeDir, "..", executableName), "serve")
 	if err != nil {
-		fmt.Println("Error running executable:", err)
+		fmt.Println("Error running executable (EXE:INSTALLER):", err)
 		return
 	}
 
 	fmt.Println("New base executed successfully.\nBye...")
+	os.Remove(filepath.Join(exeDir, "..", zipName))
 	os.Exit(0)
 }
 
@@ -137,7 +138,7 @@ func KillOldExe() {
 		// Run the command
 		err := cmd.Run()
 		if err != nil {
-			fmt.Println("Error terminating process:", err)
+			fmt.Println("Error terminating process (EXE:INSTALLER):", err)
 		}
 		fmt.Println("Process killed")
 	} else {
@@ -149,7 +150,7 @@ func KillOldExe() {
 		// Run the command
 		err := cmd.Run()
 		if err != nil {
-			fmt.Println("Error terminating process:", err)
+			fmt.Println("Error terminating process (EXE:INSTALLER):", err)
 		}
 		fmt.Println("Process killed")
 	}

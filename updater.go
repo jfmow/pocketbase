@@ -21,20 +21,10 @@ func updater() {
 	// Download the zip file
 	err := downloadFile(zipName, zipURL)
 	if err != nil {
-		fmt.Println("Error downloading zip file:", err)
+		fmt.Println("Error downloading zip file (EXE:BASE):", err)
 		return
 	}
 	fmt.Println("Zip downloaded")
-	defer os.Remove(zipName)
-
-	// Unzip the file
-	//err = unzip(zipName, targetDir)
-	//if err != nil {
-	//	fmt.Println("Error unzipping file:", err)
-	//	return
-	//}
-	//fmt.Println("Unzipped")
-	// Run the updated executable
 
 	currentOS := runtime.GOOS
 	executableName := "installer"
@@ -42,21 +32,23 @@ func updater() {
 		executableName = executableName + ".exe"
 	}
 	fmt.Println(executableName)
+
 	exeDir, err := os.Executable()
 	if err != nil {
-		fmt.Println("Error replacing find executable:", err)
+		fmt.Println("Error finding executable to replace (EXE:BASE):", err)
 		return
 	}
 
 	err = os.Chmod(filepath.Join(exeDir, "..", executableName), 0755)
 	if err != nil {
-		fmt.Println("Error give permision:", err)
+		fmt.Println("Error give permision (EXE:BASE):", err)
 		return
 	}
+
 	fmt.Println("Permisions done")
 	_, err = runExecutable(filepath.Join(exeDir, "..", executableName))
 	if err != nil {
-		fmt.Println("Error running executable:", err)
+		fmt.Println("Error running executable (EXE:BASE):", err)
 		return
 	}
 
