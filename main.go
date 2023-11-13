@@ -33,7 +33,6 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
-	log.Println(time.Now(), "Version: 0.3")
 	//If using outside docker compose un comment these
 	//err := godotenv.Load()
 	//if err != nil {
@@ -424,7 +423,6 @@ const (
 var latestFileSHA string
 
 func gitHub() {
-	fmt.Println("Test")
 	accessToken := os.Getenv("GITHUB_TOKEN")
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
