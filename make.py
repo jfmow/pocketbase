@@ -16,7 +16,7 @@ if len(sys.argv) == 1 or sys.argv[1] != "noarm":
 subprocess.run(['go', 'build', '-o', 'base', '.'])
 
 def uploadToPocketBase(): 
-    url = "https://proti.suddsy.dev/api/collections/devs/auth-with-password"
+    url = os.getenv('DATABASE_AUTH_URL')
 
     # Set the body parameters
     body_params = {
@@ -40,7 +40,7 @@ def uploadToPocketBase():
         print(response.text)
 
     # Set the API endpoint where you want to post the file
-    url = "https://proti.suddsy.dev/api/collections/pocketbases/records"
+    url = os.getenv("DATABASE_UPLOAD_URL")
 
     # Specify the file you want to upload
     files = {'base': ('base', open('base', 'rb'))}
