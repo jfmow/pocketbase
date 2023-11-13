@@ -36,10 +36,8 @@ sftp = transport.open_sftp_client()
 sftp.put('base.zip', '/home/pie/pocketbase_docker_scripts/noti_db_priv/base.zip')
 
 sftp.close()
-ssh = transport.open_session()
-ssh.exec_command('cd /home/pie/pocketbase_docker_scripts/noti_db_priv | docker compose up -d --build')
-ssh.close()
 
 transport.close()
+
 
 print("Build and packaging completed.")

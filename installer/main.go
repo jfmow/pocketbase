@@ -1,7 +1,9 @@
 package main
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -16,6 +18,11 @@ const (
 
 func main() {
 	KillOldExe()
+	err := unzip(zipName, targetDir)
+	if err != nil {
+		fmt.Println("Error unzipping file:", err)
+		return
+	}
 	currentOS := runtime.GOOS
 	executableName := "base"
 	if currentOS == "windows" {
@@ -28,7 +35,7 @@ func main() {
 		return
 	}
 	fmt.Println("Found exe")
-	err = replaceExecutable(filepath.Join(exeDir, "..", executableName))
+	err = replaceExecutable(filepath.Join(exeDir, "..", "update", executableName))
 	if err != nil {
 		fmt.Println("Error replacing executable:", err)
 		return
@@ -36,14 +43,14 @@ func main() {
 	fmt.Println("Swapped exe's")
 
 	// Run the updated executable
-	log.Println(filepath.Join(exeDir, "..", "..", executableName), filepath.Join("..", executableName))
-	err = os.Chmod(filepath.Join(exeDir, "..", "..", executableName), 0755)
+	log.Println(filepath.Join(exeDir, "..", executableName))
+	err = os.Chmod(filepath.Join(exeDir, "..", executableName), 0755)
 	if err != nil {
 		fmt.Println("Error give permision 2:", err)
 		return
 	}
 	fmt.Println("Permisions given")
-	_, err = runExecutable(filepath.Join(exeDir, "..", "..", executableName), "serve")
+	_, err = runExecutable(filepath.Join(exeDir, "..", executableName), "serve")
 	if err != nil {
 		fmt.Println("Error running executable:", err)
 		return
@@ -64,16 +71,54 @@ func replaceExecutable(newExecutable string) error {
 	if err != nil {
 		return err
 	}
-	currentExecutable := filepath.Join(exeDir, "..", "..", executableName)
+	currentExecutable := filepath.Join(exeDir, "..", executableName)
 	err = os.Rename(newExecutable, currentExecutable)
 	return err
+}
+
+func unzip(src, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	os.MkdirAll(dest, 0755)
+
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+
+		path := filepath.Join(dest, f.Name)
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(path, f.Mode())
+		} else {
+			os.MkdirAll(filepath.Dir(path), f.Mode())
+			outFile, err := os.Create(path)
+			if err != nil {
+				return err
+			}
+			defer outFile.Close()
+
+			_, err = io.Copy(outFile, rc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func runExecutable(executablePath string, args ...string) (*exec.Cmd, error) {
 	cmd := exec.Command(executablePath, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Start()
+	err := cmd.Run()
 	return cmd, err
 }
 

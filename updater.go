@@ -28,13 +28,12 @@ func updater() {
 	defer os.Remove(zipName)
 
 	// Unzip the file
-	err = unzip(zipName, targetDir)
-	if err != nil {
-		fmt.Println("Error unzipping file:", err)
-		return
-	}
-	fmt.Println("Unzipped")
-
+	//err = unzip(zipName, targetDir)
+	//if err != nil {
+	//	fmt.Println("Error unzipping file:", err)
+	//	return
+	//}
+	//fmt.Println("Unzipped")
 	// Run the updated executable
 
 	currentOS := runtime.GOOS
@@ -43,14 +42,19 @@ func updater() {
 		executableName = executableName + ".exe"
 	}
 	fmt.Println(executableName)
+	exeDir, err := os.Executable()
+	if err != nil {
+		fmt.Println("Error replacing find executable:", err)
+		return
+	}
 
-	err = os.Chmod(filepath.Join(targetDir, executableName), 0755)
+	err = os.Chmod(filepath.Join(exeDir, "..", executableName), 0755)
 	if err != nil {
 		fmt.Println("Error give permision:", err)
 		return
 	}
 	fmt.Println("Permisions done")
-	_, err = runExecutable(filepath.Join(targetDir, executableName))
+	_, err = runExecutable(filepath.Join(exeDir, "..", executableName))
 	if err != nil {
 		fmt.Println("Error running executable:", err)
 		return
@@ -131,11 +135,12 @@ func runExecutable(executablePath string, args ...string) (*exec.Cmd, error) {
 	cmd.Stderr = os.Stderr
 	var err error
 
-	currentOS := runtime.GOOS
-	if currentOS != "windows" {
-		err = cmd.Start()
-	} else {
-		cmd.Run()
-	}
+	//currentOS := runtime.GOOS
+	//if currentOS != "windows" {
+	//	err = cmd.Start()
+	//} else {
+	//	cmd.Run()
+	//}
+	cmd.Run()
 	return cmd, err
 }

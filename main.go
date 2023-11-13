@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/mail"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/go-github/github"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -20,6 +23,8 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/cron"
 	"github.com/pocketbase/pocketbase/tools/mailer"
+	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
 )
 
 var mu sync.Mutex
@@ -28,12 +33,13 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
-	log.Println(time.Now())
+	log.Println(time.Now(), "Version: 0.1")
 	//If using outside docker compose un comment these
 	//err := godotenv.Load()
 	//if err != nil {
 	//	log.Fatal("Error loading .env file")
 	//}
+	gitHub()
 	autoReset := os.Getenv("AUTO_RESET")
 	if autoReset == "true" {
 		log.Println("AUTO RESET IS ACTIVE")
@@ -199,6 +205,9 @@ func main() {
 
 		//Auto drop all tables
 		scheduler := cron.New()
+		scheduler.MustAdd("hello2e", "* * * * *", func() {
+			gitHub()
+		})
 		if autoReset == "true" {
 			scheduler.MustAdd("hello", "0 */12 * * *", func() {
 				arr := [9]string{"users", "pages", "imgs", "files", "user_flags"}
@@ -393,16 +402,57 @@ func main() {
 		return nil
 	})
 
-	//app.RootCmd.AddCommand(&cobra.Command{
-	//	Use: "deploy",
-	//	Run: func(cmd *cobra.Command, args []string) {
-	//		updater()
-	//	},
-	//})
+	app.RootCmd.AddCommand(&cobra.Command{
+		Use: "updateme",
+		Run: func(cmd *cobra.Command, args []string) {
+			updater()
+		},
+	})
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+const (
+	owner    = "jfmow"
+	repo     = "pocketbase"
+	filePath = "base.zip"
+	branch   = "master"
+)
+
+var latestFileSHA string
+
+func gitHub() {
+	fmt.Println("Test")
+	accessToken := os.Getenv("GITHUB_TOKEN")
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: accessToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+
+	client := github.NewClient(tc)
+
+	// Get the latest commit SHA for the specified file
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, owner, repo, filePath, &github.RepositoryContentGetOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if *fileContent.SHA != latestFileSHA && latestFileSHA != "" {
+		fmt.Println("Update found")
+		latestFileSHA = *fileContent.SHA
+		updater()
+	} else {
+		fmt.Println("No update found")
+	}
+
+	if latestFileSHA == "" {
+		latestFileSHA = *fileContent.SHA
+	}
+
+	//fmt.Println("Latest SHA of", filePath, ":", latestFileSHA)
 }
 
 // the default pb_public dir location is relative to the executable
