@@ -35,7 +35,6 @@ var yourDomainVar = "note.suddsy.dev"
 //var viewMu = &sync.Mutex{}
 
 func main() {
-	fmt.Println("RIGHT")
 	//If using outside docker compose un comment these
 	err := godotenv.Load()
 	if err != nil {
@@ -204,11 +203,6 @@ func main() {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
 		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS(publicDir), indexFallback))
-		e.Router.GET("/hello/:name", func(c echo.Context) error {
-			name := c.PathParam("name")
-
-			return c.JSON(http.StatusOK, map[string]string{"message": "BOO " + name})
-		} /* optional middlewares */)
 		e.Router.GET("/update/latest", func(c echo.Context) error {
 			updateApiKey := c.QueryParam("auth")
 			updateApiKeyEnv := os.Getenv("updateApiKey")
@@ -229,7 +223,7 @@ func main() {
 			app.Dao().DB().
 				Select("pocketbases.*").
 				From("pocketbases").
-				OrderBy("updated ASC").One(&result)
+				OrderBy("updated DESC").One(&result)
 
 			newFs, err := app.NewFilesystem()
 			if err != nil {
