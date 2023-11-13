@@ -14,9 +14,9 @@ os.environ['GOARCH'] = 'arm'
 subprocess.run(['go', 'build', '-o', 'base', '.'])
 
 # Create a subdirectory 'installer' and build main.go inside it, naming it 'installer'
-#os.chdir('installer')
-#subprocess.run(['go', 'build', '-o', 'installer', '.'])
-#os.chdir('..')
+os.chdir('installer')
+subprocess.run(['go', 'build', '-o', 'installer', '.'])
+os.chdir('..')
 
 # Create a zip file 'base.zip' containing 'base' and 'installer'
 with zipfile.ZipFile('base.zip', 'w') as zipf:
