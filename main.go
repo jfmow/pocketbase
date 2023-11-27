@@ -321,6 +321,14 @@ func main() {
 			if err2 != nil {
 				return apis.NewBadRequestError("Failed to login account", nil)
 			}
+			info := apis.RequestInfo(c)
+			canAccess, err := app.Dao().CanAccessRecord(record2, info, record2.Collection().CreateRule)
+			if !canAccess {
+				if err := app.Dao().DeleteRecord(record2); err != nil {
+					return apis.NewForbiddenError("", err)
+				}
+				return apis.NewForbiddenError("", err)
+			}
 			return apis.RecordAuthResponse(app, c, record2, nil)
 
 		})
