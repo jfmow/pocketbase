@@ -172,7 +172,7 @@
             },
             {
                 "system": false,
-                "id": "erlkl2xw",
+                "id": "8dehfm4i",
                 "name": "unsplash",
                 "type": "url",
                 "required": false,
@@ -255,7 +255,7 @@
             },
             {
                 "system": false,
-                "id": "wtlssntc",
+                "id": "8v7z9ihf",
                 "name": "archived",
                 "type": "bool",
                 "required": false,
@@ -352,307 +352,6 @@
         "options": {}
     },
     {
-        "id": "8596b46b3dgknyt",
-        "name": "user_flags",
-        "type": "base",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "ilixdjtb",
-                "name": "user",
-                "type": "relation",
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": null
-                }
-            },
-            {
-                "system": false,
-                "id": "krayizue",
-                "name": "quota",
-                "type": "number",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "system": false,
-                "id": "evlfnbaf",
-                "name": "admin",
-                "type": "bool",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            }
-        ],
-        "indexes": [
-            "CREATE UNIQUE INDEX `idx_EPH3ThW` ON `user_flags` (`user`)"
-        ],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
-    },
-    {
-        "id": "3n6mu583bkaq67h",
-        "name": "Total_img_per_user",
-        "type": "view",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "3xufiqi0",
-                "name": "total_size",
-                "type": "number",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            }
-        ],
-        "indexes": [],
-        "listRule": "@request.auth.id = id || @request.auth.admin = true",
-        "viewRule": "@request.auth.id = id || @request.auth.admin = true",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {
-            "query": "SELECT CAST( SUM(imgs.size) AS INT) as total_size, imgs.uploader AS id FROM imgs GROUP BY imgs.uploader"
-        }
-    },
-    {
-        "id": "d75kqh0vok79at9",
-        "name": "total_files_per_user",
-        "type": "view",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "rmugmdpe",
-                "name": "total_size",
-                "type": "number",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            }
-        ],
-        "indexes": [],
-        "listRule": "@request.auth.id = id || @request.auth.admin = true",
-        "viewRule": "@request.auth.id = id || @request.auth.admin = true",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {
-            "query": "SELECT files.uploader AS id,\n  CAST(SUM(files.size) AS INT) AS total_size\nFROM files\nGROUP BY files.uploader"
-        }
-    },
-    {
-        "id": "hiqr75tw9rp0no4",
-        "name": "pages_Bare",
-        "type": "view",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "8elkcybo",
-                "name": "owner",
-                "type": "relation",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": [
-                        "username"
-                    ]
-                }
-            },
-            {
-                "system": false,
-                "id": "dcellglk",
-                "name": "title",
-                "type": "text",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": 100,
-                    "pattern": ""
-                }
-            },
-            {
-                "system": false,
-                "id": "iwwfllue",
-                "name": "expanded",
-                "type": "bool",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "system": false,
-                "id": "mowxwqm1",
-                "name": "parentId",
-                "type": "relation",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "80hjb3tzmu2zmyy",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "system": false,
-                "id": "llitapya",
-                "name": "icon",
-                "type": "text",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "system": false,
-                "id": "xnphnvdx",
-                "name": "shared",
-                "type": "bool",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "system": false,
-                "id": "qoknrqjt",
-                "name": "archived",
-                "type": "bool",
-                "required": false,
-                "presentable": true,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "system": false,
-                "id": "fjbjwfk7",
-                "name": "color",
-                "type": "text",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "system": false,
-                "id": "8io5nyx9",
-                "name": "hidden",
-                "type": "bool",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            }
-        ],
-        "indexes": [],
-        "listRule": "@request.auth.id = owner.id",
-        "viewRule": "@request.auth.id = owner.id",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {
-            "query": "SELECT id, owner, title, expanded, parentId, icon, shared, archived, color, hidden, updated, created FROM pages"
-        }
-    },
-    {
-        "id": "qy05mfza7wweokm",
-        "name": "Total_pages_per_user",
-        "type": "view",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "p0vvphgd",
-                "name": "user",
-                "type": "relation",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": [
-                        "username"
-                    ]
-                }
-            },
-            {
-                "system": false,
-                "id": "ufkdrauc",
-                "name": "total_pages",
-                "type": "number",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            }
-        ],
-        "indexes": [],
-        "listRule": "@request.auth.id = user.id || @request.auth.admin = true",
-        "viewRule": "@request.auth.id = user.id || @request.auth.admin = true",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {
-            "query": "SELECT\n  (ROW_NUMBER() OVER()) AS id,\n  pages.owner AS user,\n  count(pages.id) AS total_pages\nFROM pages\nGROUP BY pages.owner"
-        }
-    },
-    {
         "id": "_pb_users_auth_",
         "name": "users",
         "type": "auth",
@@ -740,5 +439,306 @@
             "onlyEmailDomains": null,
             "requireEmail": true
         }
+    },
+    {
+        "id": "3n6mu583bkaq67h",
+        "name": "Total_img_per_user",
+        "type": "view",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "lzxeslwa",
+                "name": "total_size",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": false
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": "@request.auth.id = id || @request.auth.admin = true",
+        "viewRule": "@request.auth.id = id || @request.auth.admin = true",
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {
+            "query": "SELECT CAST( SUM(imgs.size) AS INT) as total_size, imgs.uploader AS id FROM imgs GROUP BY imgs.uploader"
+        }
+    },
+    {
+        "id": "d75kqh0vok79at9",
+        "name": "total_files_per_user",
+        "type": "view",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "hqsxi61z",
+                "name": "total_size",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": false
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": "@request.auth.id = id || @request.auth.admin = true",
+        "viewRule": "@request.auth.id = id || @request.auth.admin = true",
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {
+            "query": "SELECT files.uploader AS id,\n  CAST(SUM(files.size) AS INT) AS total_size\nFROM files\nGROUP BY files.uploader"
+        }
+    },
+    {
+        "id": "hiqr75tw9rp0no4",
+        "name": "pages_Bare",
+        "type": "view",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "rltsiwzz",
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": [
+                        "username"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "wjvlx7vw",
+                "name": "title",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": 100,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "mfgyc0se",
+                "name": "expanded",
+                "type": "bool",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "system": false,
+                "id": "5vsrxusj",
+                "name": "parentId",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "80hjb3tzmu2zmyy",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
+            },
+            {
+                "system": false,
+                "id": "6es1inws",
+                "name": "icon",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "qhgjrods",
+                "name": "shared",
+                "type": "bool",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "system": false,
+                "id": "qo6j1obd",
+                "name": "archived",
+                "type": "bool",
+                "required": false,
+                "presentable": true,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "system": false,
+                "id": "h9ojtec0",
+                "name": "color",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "b4okjikt",
+                "name": "hidden",
+                "type": "bool",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            }
+        ],
+        "indexes": [],
+        "listRule": "@request.auth.id = owner.id",
+        "viewRule": "@request.auth.id = owner.id",
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {
+            "query": "SELECT id, owner, title, expanded, parentId, icon, shared, archived, color, hidden, updated, created FROM pages"
+        }
+    },
+    {
+        "id": "qy05mfza7wweokm",
+        "name": "Total_pages_per_user",
+        "type": "view",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "p0h09udn",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": [
+                        "username"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "oumrxnwg",
+                "name": "total_pages",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": false
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": "@request.auth.id = user.id || @request.auth.admin = true",
+        "viewRule": "@request.auth.id = user.id || @request.auth.admin = true",
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {
+            "query": "SELECT\n  (ROW_NUMBER() OVER()) AS id,\n  pages.owner AS user,\n  count(pages.id) AS total_pages\nFROM pages\nGROUP BY pages.owner"
+        }
+    },
+    {
+        "id": "8596b46b3dgknyt",
+        "name": "user_flags",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "ilixdjtb",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "presentable": true,
+                "unique": false,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            },
+            {
+                "system": false,
+                "id": "krayizue",
+                "name": "quota",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": false
+                }
+            },
+            {
+                "system": false,
+                "id": "evlfnbaf",
+                "name": "admin",
+                "type": "bool",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            }
+        ],
+        "indexes": [
+            "CREATE UNIQUE INDEX `idx_EPH3ThW` ON `user_flags` (`user`)"
+        ],
+        "listRule": "@request.auth.id = user.id",
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
     }
 ]
