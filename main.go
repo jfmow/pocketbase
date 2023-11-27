@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/mail"
@@ -44,8 +43,11 @@ func isValidTokenFormat(token string) bool {
 	// Define a regular expression for your desired format
 	// For example, assuming a 24-character hexadecimal string
 	validFormat := regexp.MustCompile(`^[0-9a-fA-F]{24}$`)
-
 	return validFormat.MatchString(token)
+}
+func isValidEmailFormat(email string) bool {
+	validFormat := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	return validFormat.MatchString(email)
 }
 
 func main() {
@@ -291,8 +293,8 @@ func main() {
 		e.Router.POST("/api/auth/sso/signup", func(c echo.Context) error {
 			email := c.QueryParam("email")
 			username := c.QueryParam("username")
-			if email == "" || username == "" {
-				return apis.NewForbiddenError("Missing required data", nil)
+			if email == "" || username == "" || !isValidEmailFormat(email) {
+				return apis.NewForbiddenError("Missing required data/Incorrect formatting of required data", nil)
 			}
 			collection, err := app.Dao().FindCollectionByNameOrId("users")
 			if err != nil {
@@ -304,6 +306,8 @@ func main() {
 				return apis.NewBadRequestError("Failed to create account", nil)
 			}
 
+			//Generate token key for account (REQUIRED)
+			//TODO:find out how key is made by default auth provider
 			randomKey, err := generateRandomString(48)
 			if err != nil {
 				return apis.NewBadRequestError("Failed to create account", nil)
@@ -335,25 +339,26 @@ func main() {
 		e.Router.POST("/api/auth/sso/login", func(c echo.Context) error {
 			email := c.QueryParam("email")
 			token := c.QueryParam("token")
-			if email == "" || token == "" {
-				return apis.NewForbiddenError("Missing required data", nil)
+			if email == "" || token == "" || !isValidEmailFormat(email) || !isValidTokenFormat(token) {
+				return apis.NewForbiddenError("Missing required data/Incorrect formatting of required data", nil)
 			}
-			if !isValidTokenFormat(token) {
-				return c.String(400, "Invalid token format")
-			}
+			//Find token in db
 			record, err := app.Dao().FindFirstRecordByData("sso_tokens", "token", token)
 			if err != nil {
 				return apis.NewBadRequestError("Invalid credentials", nil)
 			}
+			//Check if its still valid
 			if record.GetDateTime("valid_until").Time().Before(time.Now()) {
 				if err := app.Dao().DeleteRecord(record); err != nil {
 					return err
 				}
 				return apis.NewBadRequestError("Invalid credentials", nil)
 			}
+			//Compare sent email to tokens email
 			if record.Get("email") != email {
 				return apis.NewBadRequestError("Invalid credentials", nil)
 			}
+			//Login
 			record2, err2 := app.Dao().FindFirstRecordByData("users", "email", email)
 			if err2 != nil || record2.Email() != email {
 				// return generic 400 error to prevent phones enumeration
@@ -366,41 +371,51 @@ func main() {
 		})
 		e.Router.POST("/api/auth/sso", func(c echo.Context) error {
 			email := c.QueryParam("email")
-			if email == "" {
-				return apis.NewForbiddenError("Missing required data", nil)
+			currentTime := time.Now().UTC()
+			// Add 5 minutes to the current time
+			newTime := currentTime.Add(5 * time.Minute)
+			randomString, err := generateRandomString(24)
+			if err != nil {
+				return apis.NewBadRequestError("Unable to generate token!", nil)
 			}
-			recordA, _ := app.Dao().FindFirstRecordByData("sso_tokens", "email", email)
-			if recordA != nil {
-				if err := app.Dao().DeleteRecord(recordA); err != nil {
-					return apis.NewBadRequestError("Bad request", nil)
-				}
+
+			//Check that email exists and is valid format
+			if email == "" || !isValidEmailFormat(email) {
+				return apis.NewForbiddenError("Missing required data/Incorrect formatting of required data", nil)
 			}
-			//Check if user even exists:
+
+			//Check if user exists
 			AuthRecord, err := app.Dao().FindFirstRecordByData("users", "email", email)
 			if AuthRecord == nil || err != nil {
 				return apis.NewBadRequestError("No user found with that email!", nil)
 			}
-			randomString, err := generateRandomString(24)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return apis.NewBadRequestError("Unable to generate token!", nil)
-			}
-			currentTime := time.Now().UTC()
-			// Add 5 minutes to the current time
-			newTime := currentTime.Add(5 * time.Minute)
-			collection, err := app.Dao().FindCollectionByNameOrId("sso_tokens")
-			if err != nil {
-				return apis.NewBadRequestError("Unable to create token", nil)
+
+			//Check if user already has a pending/forgotten token.
+			recordA, _ := app.Dao().FindFirstRecordByData("sso_tokens", "email", email)
+			if recordA != nil {
+				//If there is one left, update its values instead of deleting.
+				recordA.Set("token", randomString)
+				recordA.Set("valid_until", newTime)
+				if err := app.Dao().SaveRecord(recordA); err != nil {
+					return apis.NewBadRequestError("Unable to create token", nil)
+				}
+			} else {
+				//There isn't one, so create a new db entry
+				collection, err := app.Dao().FindCollectionByNameOrId("sso_tokens")
+				if err != nil {
+					return apis.NewBadRequestError("Unable to create token", nil)
+				}
+
+				record := models.NewRecord(collection)
+				record.Set("email", email)
+				record.Set("token", randomString)
+				record.Set("valid_until", newTime)
+
+				if err := app.Dao().SaveRecord(record); err != nil {
+					return apis.NewBadRequestError("Unable to create token", nil)
+				}
 			}
 
-			record := models.NewRecord(collection)
-			record.Set("email", email)
-			record.Set("token", randomString)
-			record.Set("valid_until", newTime)
-
-			if err := app.Dao().SaveRecord(record); err != nil {
-				return apis.NewBadRequestError("Unable to create token", nil)
-			}
 			htmlString := `
 			<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f4f4f4; padding: 48px; margin: 0;">
 				<tr>
