@@ -28,8 +28,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var yourDomainVar = "note.suddsy.dev"
-
 // var viewMu = &sync.Mutex{}
 func generateRandomString(length int) (string, error) {
 	bytes := make([]byte, length)
@@ -60,10 +58,6 @@ func main() {
 	autoReset := os.Getenv("AUTO_RESET")
 	if autoReset == "true" {
 		log.Println("AUTO RESET IS ACTIVE")
-	}
-	yourReplyToEmail := os.Getenv("REPLY_TO_EMAIL")
-	if yourReplyToEmail == "" {
-		yourReplyToEmail = "help@example.com"
 	}
 	app := pocketbase.New()
 
@@ -490,50 +484,9 @@ func main() {
 		return nil
 	})
 
-	sendEmail := func(email string, username string, ip string) {
-		//muLogin.Lock()         // Lock the mutex before accessing the shared resource (if necessary)
-		//defer muLogin.Unlock() // Ensure the mutex is unlocked even if a panic occurs
-
-		message := &mailer.Message{
-			From: mail.Address{
-				Address: app.Settings().Meta.SenderAddress,
-				Name:    app.Settings().Meta.SenderName,
-			},
-			To:      []mail.Address{{Address: email}},
-			Subject: `New login from  ` + ip,
-			HTML:    `<p>Hello, ` + username + `</p><p>This is an email to let you know you have had a login on your account from ` + ip + `</p><p>Click on the button below to change your password if this was not you.</p><p><a style="display: inline-block; vertical-align: top; border: 0; color: #fff!important; background: #16161a!important; text-decoration: none!important; line-height: 40px; width: auto; min-width: 150px; text-align: center; padding: 0 20px; margin: 5px 0; font-family: Source Sans Pro, sans-serif, emoji; font-size: 14px; font-weight: bold; border-radius: 6px; box-sizing: border-box;" href="https://` + yourDomainVar + `/auth/pwdreset" target="_blank" rel="noopener">Change password</a></p><p>Thanks,<br/>` + yourDomainVar + ` team</p>`, // bcc, cc, attachments and custom headers are also supported...
-			Headers: map[string]string{
-				"Reply-To": yourReplyToEmail,
-			},
-		}
-		app.NewMailClient().Send(message)
-	}
-
 	app.OnRecordAfterCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
 		//log.Println(e.Record)
 		createWelcomePage(e.Record.Id)
-		return nil
-	})
-
-	app.OnRecordAfterAuthWithPasswordRequest("users").Add(func(e *core.RecordAuthWithPasswordEvent) error {
-		usrEmail := e.Record.Email()
-		usrUsername := e.Record.Username()
-		loginIp := e.HttpContext.RealIP()
-		if e.Record.Verified() {
-			go sendEmail(usrEmail, usrUsername, loginIp)
-		}
-
-		return nil
-	})
-
-	app.OnRecordAfterAuthWithOAuth2Request("users").Add(func(e *core.RecordAuthWithOAuth2Event) error {
-		usrEmail := e.Record.Email()
-		usrUsername := e.Record.Username()
-		loginIp := e.HttpContext.RealIP()
-		if e.Record.Verified() {
-			go sendEmail(usrEmail, usrUsername, loginIp)
-		}
-
 		return nil
 	})
 
@@ -590,10 +543,6 @@ func main() {
 		if totalColl >= 2 {
 			return nil
 		}
-
-		//log.Println(totalSize, userFlags.GetFloat("quota"))
-
-		//log.Println(totalSize, userFlags.GetInt("quota"))
 
 		if totalSize >= userFlags.GetFloat("quota") {
 			return apis.NewForbiddenError("You have exceeded the total size of embeds/images allowed for your account.", nil)
