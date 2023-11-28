@@ -25,6 +25,7 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/cron"
 	"github.com/pocketbase/pocketbase/tools/mailer"
+	"github.com/pocketbase/pocketbase/tools/security"
 	"github.com/spf13/cobra"
 )
 
@@ -301,11 +302,8 @@ func main() {
 			}
 
 			//Generate token key for account (REQUIRED)
-			//TODO:find out how key is made by default auth provider
-			randomKey, err := generateRandomString(48)
-			if err != nil {
-				return apis.NewBadRequestError("Failed to create account", nil)
-			}
+
+			randomKey := security.RandomString(50)
 
 			record := models.NewRecord(collection)
 			record.Set("email", email)
