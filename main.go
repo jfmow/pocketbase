@@ -327,6 +327,7 @@ func main() {
 				}
 				return apis.NewForbiddenError("", err)
 			}
+			go createWelcomePage(record2.Id)
 			return apis.RecordAuthResponse(app, c, record2, nil)
 
 		})
@@ -383,6 +384,8 @@ func main() {
 			if AuthRecord == nil || err != nil {
 				return apis.NewBadRequestError("No user found with that email!", nil)
 			}
+
+			log.Println(AuthRecord)
 
 			//Check if user already has a pending/forgotten token.
 			recordA, _ := app.Dao().FindFirstRecordByData("sso_tokens", "email", email)
