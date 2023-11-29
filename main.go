@@ -364,6 +364,7 @@ func main() {
 		})
 		e.Router.POST("/api/auth/sso", func(c echo.Context) error {
 			email := c.QueryParam("email")
+			linkUrl := c.QueryParam("linkUrl")
 			currentTime := time.Now().UTC()
 			// Add 5 minutes to the current time
 			newTime := currentTime.Add(5 * time.Minute)
@@ -423,6 +424,7 @@ func main() {
 							<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">
 								To login copy this token and paste it in the login screen</p>
 							<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">{TOKEN HERE}</p>
+							<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">Or click this magic link: <a  target="_blank" rel="noopener" style="color: #999999; text-decoration: underline; cursor: pointer;" href='{APPURL HERE}/auth/login?ssoToken={TOKEN HERE}&ssoEmail={USER EMAIL HERE}'>login</a></p>
 						</div>
 					</td>
 				</tr>
@@ -433,7 +435,9 @@ func main() {
 			token := randomString
 
 			// Replace {TOKEN HERE} with the actual token
-			modifiedHTML := strings.Replace(htmlString, "{TOKEN HERE}", token, 1)
+			modifiedHTML1 := strings.Replace(htmlString, "{TOKEN HERE}", token, 2)
+			modifiedHTML2 := strings.Replace(modifiedHTML1, "{APPURL HERE}", linkUrl, 1)
+			modifiedHTML := strings.Replace(modifiedHTML2, "{USER EMAIL HERE}", email, 1)
 
 			message := &mailer.Message{
 				From: mail.Address{
