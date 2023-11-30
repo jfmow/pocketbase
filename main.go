@@ -212,6 +212,27 @@ func main() {
 		}
 		return nil
 	}
+	createDefaultUserFlagsRecord := func(userId string, ssoEnabled bool) error {
+		collection, err := app.Dao().FindCollectionByNameOrId("user_flags")
+		if err != nil {
+			return err
+		}
+
+		record := models.NewRecord(collection)
+
+		// set individual fields
+		// or bulk load with record.Load(map[string]any{...})
+		record.Set("user", userId)
+		record.Set("quota", 10485760)
+		if ssoEnabled {
+			record.Set("sso", true)
+		}
+
+		if err := app.Dao().SaveRecord(record); err != nil {
+			return err
+		}
+		return nil
+	}
 
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
@@ -326,6 +347,10 @@ func main() {
 				return apis.NewForbiddenError("", err)
 			}
 			go createWelcomePage(record2.Id)
+			if err := createDefaultUserFlagsRecord(record2.Id, true); err != nil {
+				return apis.NewApiError(500, "Flag creation failed", nil)
+			}
+
 			return apis.RecordAuthResponse(app, c, record2, nil)
 
 		})
@@ -384,7 +409,13 @@ func main() {
 				return apis.NewBadRequestError("No user found with that email!", nil)
 			}
 
-			log.Println(AuthRecord)
+			userFlagsRecord, err := app.Dao().FindFirstRecordByData("user_flags", "user", AuthRecord.Id)
+			if err != nil {
+				return apis.NewBadRequestError("Record error", nil)
+			}
+			if !userFlagsRecord.GetBool("sso") {
+				return apis.NewUnauthorizedError("Auth method not enabled", nil)
+			}
 
 			//Check if user already has a pending/forgotten token.
 			recordA, _ := app.Dao().FindFirstRecordByData("sso_tokens", "email", email)
@@ -453,6 +484,23 @@ func main() {
 			go app.NewMailClient().Send(message)
 			return nil
 		})
+		e.Router.POST("/api/auth/sso/toggle", func(c echo.Context) error {
+			authRecord, _ := c.Get(apis.ContextAuthRecordKey).(*models.Record)
+			isGuest := authRecord == nil
+			if isGuest {
+				return apis.NewForbiddenError("Must be signed in to preform this action", nil)
+			}
+			record, err := app.Dao().FindFirstRecordByData("user_flags", "user", authRecord.Id)
+			if err != nil {
+				return apis.NewBadRequestError("Record error", nil)
+			}
+			record.Set("sso", !record.GetBool("sso"))
+
+			if err := app.Dao().SaveRecord(record); err != nil {
+				return apis.NewApiError(500, "Unable to update sso state", nil)
+			}
+			return nil
+		})
 		//Auto drop all tables
 		scheduler := cron.New()
 		if autoReset == "true" {
@@ -492,6 +540,9 @@ func main() {
 	app.OnRecordAfterCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
 		//log.Println(e.Record)
 		createWelcomePage(e.Record.Id)
+		if err := createDefaultUserFlagsRecord(e.Record.Id, false); err != nil {
+			return apis.NewApiError(500, "Flag creation failed", nil)
+		}
 		return nil
 	})
 
@@ -507,13 +558,7 @@ func main() {
 		}
 		userFlags, err := app.Dao().FindFirstRecordByData(flagsCollection.Id, "user", authRecord.Id)
 		if err != nil {
-			record := models.NewRecord(flagsCollection)
-			record.Set("user", authRecord.Id)
-			record.Set("quota", 10485760)
-			if err := app.Dao().SaveRecord(record); err != nil {
-				return apis.NewBadRequestError("Failed to validate user quota. Please contact support if this issue persists.", nil)
-			}
-			return nil
+			return apis.NewBadRequestError("Failed to validate user quota. Please contact support if this issue persists.", nil)
 		}
 		//log.Println(userFlags)
 		if userFlags.GetBool("admin") {
