@@ -353,7 +353,7 @@ func main() {
 
 			return apis.RecordAuthResponse(app, c, record2, nil)
 
-		})
+		}, apis.ActivityLogger(app))
 		e.Router.POST("/api/auth/sso/login", func(c echo.Context) error {
 			email := c.QueryParam("email")
 			token := c.QueryParam("token")
@@ -386,7 +386,7 @@ func main() {
 				return apis.NewBadRequestError("Invalid credentials", nil)
 			}
 			return apis.RecordAuthResponse(app, c, record2, nil)
-		})
+		}, apis.ActivityLogger(app))
 		e.Router.POST("/api/auth/sso", func(c echo.Context) error {
 			email := c.QueryParam("email")
 			linkUrl := c.QueryParam("linkUrl")
@@ -486,21 +486,38 @@ func main() {
 		})
 		e.Router.POST("/api/auth/sso/toggle", func(c echo.Context) error {
 			authRecord, _ := c.Get(apis.ContextAuthRecordKey).(*models.Record)
+			newPassword := c.QueryParam("np")
 			isGuest := authRecord == nil
 			if isGuest {
 				return apis.NewForbiddenError("Must be signed in to preform this action", nil)
 			}
 			record, err := app.Dao().FindFirstRecordByData("user_flags", "user", authRecord.Id)
 			if err != nil {
-				return apis.NewBadRequestError("Record error", nil)
+				return apis.NewBadRequestError("Problem while checking status", nil)
 			}
+
+			if authRecord.PasswordHash() == "" && newPassword == "" && record.GetBool("sso") {
+				return apis.NewBadRequestError("You must set a password before disabling SSO", nil)
+			}
+			if newPassword != "" {
+				if err := authRecord.SetPassword(newPassword); err != nil {
+					return apis.NewBadRequestError("Missing or invalid data", nil)
+				}
+				if !authRecord.ValidatePassword(newPassword) {
+					return apis.NewApiError(500, "Unable to validate new password", nil)
+				}
+				if err := app.Dao().SaveRecord(authRecord); err != nil {
+					return apis.NewApiError(500, "Unable to set new password", nil)
+				}
+			}
+
 			record.Set("sso", !record.GetBool("sso"))
 
 			if err := app.Dao().SaveRecord(record); err != nil {
 				return apis.NewApiError(500, "Unable to update sso state", nil)
 			}
 			return nil
-		})
+		}, apis.ActivityLogger(app))
 		//Auto drop all tables
 		scheduler := cron.New()
 		if autoReset == "true" {
@@ -623,7 +640,6 @@ func main() {
 		//Get the file size
 		size = file.Size()
 		//Close the file reader
-		files.Close()
 
 		//Find the record for that file
 		record, err := app.Dao().FindRecordById(e.Collection.Name, e.Record.Id)
@@ -636,6 +652,7 @@ func main() {
 		if err := app.Dao().SaveRecord(record); err != nil {
 			return err
 		}
+
 		return nil
 	})
 
