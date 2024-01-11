@@ -24,30 +24,12 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/cron"
-	"github.com/pocketbase/pocketbase/tools/mailer"
+	"github.com/pocketbase/pocketbase/tools/hook"
 	"github.com/pocketbase/pocketbase/tools/security"
 	"github.com/spf13/cobra"
 )
 
 // var viewMu = &sync.Mutex{}
-func generateRandomString(length int) (string, error) {
-	bytes := make([]byte, length)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes)[:length], nil
-}
-func isValidTokenFormat(token string) bool {
-	// Define a regular expression for your desired format
-	// For example, assuming a 24-character hexadecimal string
-	validFormat := regexp.MustCompile(`^[0-9a-fA-F]{24}$`)
-	return validFormat.MatchString(token)
-}
-func isValidEmailFormat(email string) bool {
-	validFormat := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	return validFormat.MatchString(email)
-}
 
 func main() {
 	//If using outside docker compose un comment these
@@ -470,18 +452,11 @@ func main() {
 			modifiedHTML2 := strings.Replace(modifiedHTML1, "{APPURL HERE}", linkUrl, 1)
 			modifiedHTML := strings.Replace(modifiedHTML2, "{USER EMAIL HERE}", email, 1)
 
-			message := &mailer.Message{
-				From: mail.Address{
-					Address: app.Settings().Meta.SenderAddress,
-					Name:    app.Settings().Meta.SenderName,
-				},
-				To:      []mail.Address{{Address: email}},
-				Subject: "SSO Token",
-				HTML:    modifiedHTML,
-				// bcc, cc, attachments and custom headers are also supported...
+			err = SendCustomEmail("SSO Token", []mail.Address{{Address: email}}, modifiedHTML)
+			if err != nil {
+				return apis.NewBadRequestError("Unable to send sso token", nil)
 			}
 
-			go app.NewMailClient().Send(message)
 			return nil
 		})
 		e.Router.POST("/api/auth/sso/toggle", func(c echo.Context) error {
@@ -678,6 +653,41 @@ func main() {
 		return nil
 	})
 
+	//Use resend for emails
+	app.OnMailerBeforeRecordVerificationSend().Add(func(e *core.MailerRecordEvent) error {
+
+		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
+		if err != nil {
+			return apis.NewApiError(500, "email err", err)
+		}
+
+		return hook.StopPropagation
+	})
+	app.OnMailerBeforeRecordResetPasswordSend().Add(func(e *core.MailerRecordEvent) error {
+		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
+		if err != nil {
+			return apis.NewApiError(500, "email err", err)
+		}
+
+		return hook.StopPropagation
+	})
+	app.OnMailerBeforeAdminResetPasswordSend().Add(func(e *core.MailerAdminEvent) error {
+		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
+		if err != nil {
+			return apis.NewApiError(500, "email err", err)
+		}
+
+		return hook.StopPropagation
+	})
+	app.OnMailerBeforeRecordChangeEmailSend().Add(func(e *core.MailerRecordEvent) error {
+		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
+		if err != nil {
+			return apis.NewApiError(500, "email err", err)
+		}
+
+		return hook.StopPropagation
+	})
+
 	app.RootCmd.AddCommand(&cobra.Command{
 		Use: "updateme",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -700,4 +710,24 @@ func defaultPublicDir() string {
 	}
 
 	return filepath.Join(os.Args[0], "../pb_public")
+}
+
+// Helpers
+func generateRandomString(length int) (string, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes)[:length], nil
+}
+func isValidTokenFormat(token string) bool {
+	// Define a regular expression for your desired format
+	// For example, assuming a 24-character hexadecimal string
+	validFormat := regexp.MustCompile(`^[0-9a-fA-F]{24}$`)
+	return validFormat.MatchString(token)
+}
+func isValidEmailFormat(email string) bool {
+	validFormat := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	return validFormat.MatchString(email)
 }
