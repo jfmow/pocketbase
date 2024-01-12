@@ -24,7 +24,6 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/jsvm"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 	"github.com/pocketbase/pocketbase/tools/cron"
-	"github.com/pocketbase/pocketbase/tools/hook"
 	"github.com/pocketbase/pocketbase/tools/security"
 	"github.com/spf13/cobra"
 )
@@ -452,7 +451,7 @@ func main() {
 			modifiedHTML2 := strings.Replace(modifiedHTML1, "{APPURL HERE}", linkUrl, 1)
 			modifiedHTML := strings.Replace(modifiedHTML2, "{USER EMAIL HERE}", email, 1)
 
-			err = SendCustomEmail("SSO Token", []mail.Address{{Address: email}}, modifiedHTML)
+			err = SendCustomEmail("SSO Token", []mail.Address{{Address: email}}, modifiedHTML, app)
 			if err != nil {
 				return apis.NewBadRequestError("Unable to send sso token", nil)
 			}
@@ -654,39 +653,6 @@ func main() {
 	})
 
 	//Use resend for emails
-	app.OnMailerBeforeRecordVerificationSend().Add(func(e *core.MailerRecordEvent) error {
-
-		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
-		if err != nil {
-			return apis.NewApiError(500, "email err", err)
-		}
-
-		return hook.StopPropagation
-	})
-	app.OnMailerBeforeRecordResetPasswordSend().Add(func(e *core.MailerRecordEvent) error {
-		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
-		if err != nil {
-			return apis.NewApiError(500, "email err", err)
-		}
-
-		return hook.StopPropagation
-	})
-	app.OnMailerBeforeAdminResetPasswordSend().Add(func(e *core.MailerAdminEvent) error {
-		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
-		if err != nil {
-			return apis.NewApiError(500, "email err", err)
-		}
-
-		return hook.StopPropagation
-	})
-	app.OnMailerBeforeRecordChangeEmailSend().Add(func(e *core.MailerRecordEvent) error {
-		err := SendCustomEmail(e.Message.Subject, e.Message.To, e.Message.HTML)
-		if err != nil {
-			return apis.NewApiError(500, "email err", err)
-		}
-
-		return hook.StopPropagation
-	})
 
 	app.RootCmd.AddCommand(&cobra.Command{
 		Use: "updateme",

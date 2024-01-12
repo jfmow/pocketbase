@@ -2,33 +2,27 @@ package main
 
 import (
 	"net/mail"
-	"os"
 
-	"github.com/resend/resend-go/v2"
+	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/tools/mailer"
 )
 
-func SendCustomEmail(subject string, recp []mail.Address, data string) error {
-	apiKey := os.Getenv("RESEND_API")
-	senderEmail := os.Getenv("RESEND_EMAIL")
-	replyToAddr := os.Getenv("REPLY_TO_EMAIL")
-
-	client := resend.NewClient(apiKey)
-
-	params := &resend.SendEmailRequest{
-		From:    senderEmail,
-		To:      mailAddressesToStrings(recp),
-		ReplyTo: replyToAddr,
+func SendCustomEmail(subject string, recp []mail.Address, data string, app *pocketbase.PocketBase) error {
+	message := &mailer.Message{
+		From: mail.Address{
+			Address: app.Settings().Meta.SenderAddress,
+			Name:    app.Settings().Meta.SenderName,
+		},
+		To:      recp,
 		Subject: subject,
-		Html:    data,
+		HTML:    data,
+		// bcc, cc, attachments and custom headers are also supported...
 	}
 
-	_, err := client.Emails.Send(params)
-	if err != nil {
-		return err
-	}
-	return nil
+	return app.NewMailClient().Send(message)
 }
 
+/**
 func mailAddressesToStrings(addresses []mail.Address) []string {
 	stringAddresses := make([]string, len(addresses))
 
@@ -39,3 +33,4 @@ func mailAddressesToStrings(addresses []mail.Address) []string {
 
 	return stringAddresses
 }
+*/
