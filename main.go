@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -29,6 +30,13 @@ import (
 )
 
 // var viewMu = &sync.Mutex{}
+var (
+	mapsMutex           sync.Mutex
+	emailMutexMapLock   sync.Mutex
+	emailMutexMap       = make(map[string]*sync.Mutex)
+	emailLastRequestMap = make(map[string]time.Time)
+	requestInterval     = 5 * time.Minute
+)
 
 func main() {
 	//If using outside docker compose un comment these
@@ -250,43 +258,6 @@ func main() {
 			//c.File()
 
 		} /* optional middlewares */)
-		e.Router.GET("/analytics", func(c echo.Context) error {
-			id := c.QueryParam("id")
-			url := c.QueryParam("url")
-			action := c.QueryParam("action")
-			ip := c.RealIP()
-			region := strings.Split(c.Request().Header.Get("accept-language"), ",")[0]
-			if id == "" || url == "" || ip == "" || region == "" {
-				return c.String(400, "Missing required data")
-			}
-
-			collection, err := app.Dao().FindCollectionByNameOrId("analytics")
-			if err != nil {
-				return c.NoContent(500)
-			}
-
-			record := models.NewRecord(collection)
-
-			record.Set("fingerprint", id)
-			record.Set("url", url)
-			record.Set("ip", ip)
-			record.Set("action", action)
-			record.Set("region", region)
-
-			if err := app.Dao().SaveRecord(record); err != nil {
-				return c.NoContent(500)
-			}
-			return c.String(200, "Success")
-		})
-		e.Router.GET("/analytics/reset_table", func(c echo.Context) error {
-			_, err := app.Dao().DB().
-				NewQuery(`DELETE FROM ` + "analytics" + `;`).
-				Execute()
-			if err != nil {
-				return c.String(500, "Failed to reset analytics table")
-			}
-			return c.String(200, "Complete")
-		}, apis.RequireAdminAuth())
 		e.Router.POST("/api/auth/sso/signup", func(c echo.Context) error {
 			email := c.QueryParam("email")
 			username := c.QueryParam("username")
@@ -369,22 +340,52 @@ func main() {
 			return apis.RecordAuthResponse(app, c, record2, nil)
 		}, apis.ActivityLogger(app))
 		e.Router.POST("/api/auth/sso", func(c echo.Context) error {
+			mapsMutex.Lock()
+			defer mapsMutex.Unlock()
+
 			email := c.QueryParam("email")
 			linkUrl := c.QueryParam("linkUrl")
 			currentTime := time.Now().UTC()
+
 			// Add 5 minutes to the current time
-			newTime := currentTime.Add(5 * time.Minute)
+			newTime := currentTime.Add(requestInterval)
+
 			randomString, err := generateRandomString(24)
 			if err != nil {
 				return apis.NewBadRequestError("Unable to generate token!", nil)
 			}
 
-			//Check that email exists and is valid format
+			// Check that email exists and is in valid format
 			if email == "" || !isValidEmailFormat(email) {
 				return apis.NewForbiddenError("Missing required data/Incorrect formatting of required data", nil)
 			}
 
-			//Check if user exists
+			emailMutexMapLock.Lock()
+			defer emailMutexMapLock.Unlock()
+
+			// Lock the email-specific mutex
+			emailMutex, exists := emailMutexMap[email]
+			if !exists {
+				emailMutex = &sync.Mutex{}
+				emailMutexMap[email] = emailMutex
+			}
+			emailMutex.Lock()
+
+			// Check if another request was made within the last 5 minutes
+			lastRequestTime, exists := emailLastRequestMap[email]
+			if exists && currentTime.Sub(lastRequestTime) < requestInterval {
+				// Another request was made within the last 5 minutes
+				emailMutex.Unlock()
+				return apis.NewBadRequestError("Only one request allowed every 5 minutes", nil)
+			}
+
+			// Update last request time for the email
+			emailLastRequestMap[email] = currentTime
+
+			// Unlock the email-specific mutex
+			emailMutex.Unlock()
+
+			// Check if user exists
 			AuthRecord, err := app.Dao().FindFirstRecordByData("users", "email", email)
 			if AuthRecord == nil || err != nil {
 				return apis.NewBadRequestError("No user found with that email!", nil)
@@ -398,17 +399,17 @@ func main() {
 				return apis.NewUnauthorizedError("Auth method not enabled", nil)
 			}
 
-			//Check if user already has a pending/forgotten token.
+			// Check if user already has a pending/forgotten token
 			recordA, _ := app.Dao().FindFirstRecordByData("sso_tokens", "email", email)
 			if recordA != nil {
-				//If there is one left, update its values instead of deleting.
+				// If there is one left, update its values instead of deleting
 				recordA.Set("token", randomString)
 				recordA.Set("valid_until", newTime)
 				if err := app.Dao().SaveRecord(recordA); err != nil {
 					return apis.NewBadRequestError("Unable to create token", nil)
 				}
 			} else {
-				//There isn't one, so create a new db entry
+				// There isn't one, so create a new db entry
 				collection, err := app.Dao().FindCollectionByNameOrId("sso_tokens")
 				if err != nil {
 					return apis.NewBadRequestError("Unable to create token", nil)
@@ -425,22 +426,22 @@ func main() {
 			}
 
 			htmlString := `
-			<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f4f4f4; padding: 48px; margin: 0;">
-				<tr>
-					<td align="center">
-						<div
-							style="max-width: 460px; height: fit-content; padding: 48px; color: #111111; background: #ffffff; word-wrap: break-word; line-height: 1.6; border-radius: 0.5rem; box-shadow: 2.8px 2.8px 2.2px -19px rgba(0, 0, 0, 0.07), 6.7px 6.7px 5.3px -19px rgba(0, 0, 0, 0.05), 12.5px 12.5px 10px -19px rgba(0, 0, 0, 0.042), 22.3px 22.3px 17.9px -19px rgba(0, 0, 0, 0.035), 41.8px 41.8px 33.4px -19px rgba(0, 0, 0, 0.028), 100px 100px 80px -19px rgba(0, 0, 0, 0.02);">
-							<img src="https://p.suddsy.dev/Favicon.png" alt="Company Logo"
-								style="width: 40px; height: 40px; margin: 10px; margin-left: 0;">
-							<h1 style="font-size: 34px;">Sign-in with SSO</h1>
-							<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">
-								To login copy this token and paste it in the login screen</p>
-							<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">{TOKEN HERE}</p>
-							<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">Or click this magic link: <a  target="_blank" rel="noopener" style="color: #999999; text-decoration: underline; cursor: pointer;" href='{APPURL HERE}/auth/login?ssoToken={TOKEN HERE}&ssoEmail={USER EMAIL HERE}'>login</a></p>
-						</div>
-					</td>
-				</tr>
-			</table>
+				<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f4f4f4; padding: 48px; margin: 0;">
+					<tr>
+						<td align="center">
+							<div
+								style="max-width: 460px; height: fit-content; padding: 48px; color: #111111; background: #ffffff; word-wrap: break-word; line-height: 1.6; border-radius: 0.5rem; box-shadow: 2.8px 2.8px 2.2px -19px rgba(0, 0, 0, 0.07), 6.7px 6.7px 5.3px -19px rgba(0, 0, 0, 0.05), 12.5px 12.5px 10px -19px rgba(0, 0, 0, 0.042), 22.3px 22.3px 17.9px -19px rgba(0, 0, 0, 0.035), 41.8px 41.8px 33.4px -19px rgba(0, 0, 0, 0.028), 100px 100px 80px -19px rgba(0, 0, 0, 0.02);">
+								<img src="https://p.suddsy.dev/Favicon.png" alt="Company Logo"
+									style="width: 40px; height: 40px; margin: 10px; margin-left: 0;">
+								<h1 style="font-size: 34px;">Sign-in with SSO</h1>
+								<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">
+									To login copy this token and paste it in the login screen</p>
+								<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">{TOKEN HERE}</p>
+								<p style="font-weight: inherit; line-height: 1.6; font-size: 18px; margin: 0 0 12px; padding: 0;">Or click this magic link: <a  target="_blank" rel="noopener" style="color: #999999; text-decoration: underline; cursor: pointer;" href='{APPURL HERE}/auth/login?ssoToken={TOKEN HERE}&ssoEmail={USER EMAIL HERE}'>login</a></p>
+							</div>
+						</td>
+					</tr>
+				</table>
 			`
 
 			// Token to be inserted
